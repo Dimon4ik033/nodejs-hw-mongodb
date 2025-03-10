@@ -1,6 +1,8 @@
 import mongoos from 'mongoose';
 
-const DB_URL = process.env.DB_URL;
+import { getEnvVar } from '../utils/getEnvVar.js';
+
+const DB_URL = getEnvVar('DB_URL');
 
 export function initMongoConnection() {
   return mongoos.connect(DB_URL);
