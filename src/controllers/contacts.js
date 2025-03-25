@@ -10,8 +10,10 @@ import {
 import createHttpError from 'http-errors';
 import { parsePaginationParams } from '../utils/parsePaginationParams.js';
 import { parseSortParams } from '../utils/parseSortParams.js';
+import { parseFilterParams } from '../utils/parseFilterParams.js';
 
 export async function getContactsController(req, res) {
+  const filter = parseFilterParams(req.query);
   const { page, perPage } = parsePaginationParams(req.query);
   const { sortBy, sortOrder } = parseSortParams(req.query);
 
@@ -20,6 +22,8 @@ export async function getContactsController(req, res) {
     perPage,
     sortBy,
     sortOrder,
+    filter,
+    userId: req.user.id,
   });
 
   res.json({
@@ -38,6 +42,10 @@ export async function getContactController(req, res) {
     throw new createHttpError.NotFound('Contact not found');
   }
 
+  if (contact.userId.toString() !== req.user.id.toString()) {
+    throw new createHttpError.Forbidden('Contact is not allowed');
+  }
+
   res.json({
     status: 200,
     message: 'Successfully found contacts!',
@@ -54,15 +62,24 @@ export async function deleteContactController(req, res) {
     throw new createHttpError.NotFound('Contact not found');
   }
 
+  if (result.userId.toString() !== req.user.id.toString()) {
+    throw new createHttpError.Forbidden('Contact is not allowed');
+  }
+
   res.json({ status: 200, message: 'Successfully', data: result });
 }
 
 export async function createContactController(req, res) {
-  const contact = req.body;
+  const contact = {
+    ...req.body,
+    userId: req.user.id,
+  };
 
   const result = await createContact(contact);
 
-  console.log(result);
+  if (result.userId.toString() !== req.user.id.toString()) {
+    throw new createHttpError.Forbidden('Contact is not allowed');
+  }
 
   res.status(201).json({
     status: 201,
@@ -76,6 +93,10 @@ export async function replaceContactController(req, res) {
   const contact = req.body;
 
   const result = await replaceContact(contactId, contact);
+
+  if (result.userId.toString() !== req.user.id.toString()) {
+    throw new createHttpError.Forbidden('Contact is not allowed');
+  }
 
   if (result.updatedExisting === true) {
     return res.json({
@@ -97,6 +118,10 @@ export async function updateContactController(req, res) {
   const contact = req.body;
 
   const result = await updateContact(contactId, contact);
+
+  if (result.userId.toString() !== req.user.id.toString()) {
+    throw new createHttpError.Forbidden('Contact is not allowed');
+  }
 
   if (result === null) {
     throw new createHttpError.NotFound('Contact not found');

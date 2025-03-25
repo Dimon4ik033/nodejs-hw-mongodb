@@ -1,11 +1,28 @@
 import Contact from '../models/contacts.js';
 
-export async function getContacts({ page, perPage, sortBy, sortOrder }) {
+export async function getContacts({
+  page,
+  perPage,
+  sortBy,
+  sortOrder,
+  filter,
+  userId,
+}) {
   const skip = page > 0 ? (page - 1) * perPage : 0;
 
+  const contactQuerty = Contact.find({ userId });
+
+  if (typeof filter.minYear !== 'undefined') {
+    contactQuerty.where('year').gte(filter.minYear);
+  }
+
+  if (typeof filter.maxYear !== 'undefined') {
+    contactQuerty.where('year').lte(filter.maxYear);
+  }
+
   const [totalItems, contacts] = await Promise.all([
-    Contact.countDocuments(),
-    Contact.find()
+    Contact.countDocuments(contactQuerty),
+    contactQuerty
       .sort({ [sortBy]: sortOrder })
       .skip(skip)
       .limit(perPage),
