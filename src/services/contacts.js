@@ -5,25 +5,18 @@ export async function getContacts({
   perPage,
   sortBy,
   sortOrder,
-  filter,
   userId,
 }) {
   const skip = page > 0 ? (page - 1) * perPage : 0;
 
-  const contactQuerty = Contact.find({ userId });
+  const contactQuery = Contact.find({ userId });
 
-  if (typeof filter.minYear !== 'undefined') {
-    contactQuerty.where('year').gte(filter.minYear);
-  }
-
-  if (typeof filter.maxYear !== 'undefined') {
-    contactQuerty.where('year').lte(filter.maxYear);
-  }
+  const sortDirection = sortOrder === 'desc' ? -1 : 1;
 
   const [totalItems, contacts] = await Promise.all([
-    Contact.countDocuments(contactQuerty),
-    contactQuerty
-      .sort({ [sortBy]: sortOrder })
+    Contact.countDocuments({ userId }),
+    contactQuery
+      .sort({ [sortBy]: sortDirection })
       .skip(skip)
       .limit(perPage),
   ]);
@@ -42,11 +35,11 @@ export async function getContacts({
 }
 
 export function getContact(contactId, userId) {
-  return Contact.findOne(contactId, userId);
+  return Contact.findOne({ _id: contactId, userId: userId });
 }
 
 export function deleteContact(contactId, userId) {
-  return Contact.findOneAndDelete(contactId, userId);
+  return Contact.findOneAndDelete({ _id: contactId, userId: userId });
 }
 
 export function createContact(contact) {
@@ -54,18 +47,23 @@ export function createContact(contact) {
 }
 
 export async function replaceContact(contactId, userId, contact) {
-  const result = await Contact.findOneAndUpdate(contactId, userId, contact, {
-    new: true,
-    upsert: true,
-    includeResultMetadata: true,
-  });
+  const result = await Contact.findOneAndUpdate(
+    { _id: contactId, userId },
+    contact,
+    {
+      new: true,
+      upsert: true,
+    },
+  );
 
   return {
-    value: result.value,
-    updatedExisting: result.lastErrorObject.updatedExisting,
+    value: result?.value || result,
+    updatedExisting: result?.lastErrorObject?.updatedExisting ?? false,
   };
 }
 
 export async function updateContact(contactId, userId, contact) {
-  return Contact.findOneAndUpdate(contactId, userId, contact, { new: true });
+  return Contact.findOneAndUpdate({ _id: contactId, userId }, contact, {
+    new: true,
+  });
 }

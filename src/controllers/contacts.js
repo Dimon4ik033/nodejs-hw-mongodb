@@ -35,8 +35,7 @@ export async function getContactsController(req, res) {
 
 export async function getContactController(req, res) {
   const { contactId } = req.params;
-
-  const contact = await getContact(contactId);
+  const contact = await getContact(contactId, req.user.id);
 
   if (contact === null) {
     throw new createHttpError.NotFound('Contact not found');
@@ -56,7 +55,7 @@ export async function getContactController(req, res) {
 export async function deleteContactController(req, res) {
   const { contactId } = req.params;
 
-  const result = await deleteContact(contactId);
+  const result = await deleteContact(contactId, req.user.id);
 
   if (result === null) {
     throw new createHttpError.NotFound('Contact not found');
@@ -117,7 +116,7 @@ export async function updateContactController(req, res) {
   const { contactId } = req.params;
   const contact = req.body;
 
-  const result = await updateContact(contactId, contact);
+  const result = await updateContact(contactId, req.user.id, contact);
 
   if (result.userId.toString() !== req.user.id.toString()) {
     throw new createHttpError.Forbidden('Contact is not allowed');
