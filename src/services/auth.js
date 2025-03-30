@@ -3,6 +3,19 @@ import createHttpError from 'http-errors';
 import { User } from '../models/user.js';
 import { Session } from '../models/session.js';
 import crypto from 'node:crypto';
+import { sendEmail } from '../utils/sendEmail.js';
+import jwt from 'jsonwebtoken';
+import { getEnvVar } from '../utils/getEnvVar.js';
+import * as fs from 'node:fs';
+import path from 'node:path';
+import handlebars from 'handlebars';
+
+const RESET_PASSWORD_TEMPLATE = fs.readFileSync(
+  path.resolve('src/templates/reset-password.hbs'),
+  { encoding: 'UTF-8' },
+);
+
+console.log(RESET_PASSWORD_TEMPLATE);
 
 export async function registerUser(payload) {
   const user = await User.findOne({ email: payload.email });
@@ -69,7 +82,53 @@ export async function refreshSession(sessionId, refreshToken) {
     userId: currentSession.userId,
     accessToken: crypto.randomBytes(30).toString('base64'),
     refreshToken: crypto.randomBytes(30).toString('base64'),
-    accessTokenValidUntil: new Date(Date.now() + 10 * 60 * 60 * 1000),
+    accessTokenValidUntil: new Date(Date.now() + 10 * 60 * 1000),
     refreshTokenValidUntil: new Date(Date.now() + 24 * 60 * 60 * 1000),
   });
+}
+
+export async function requestResetPassword(email) {
+  const user = await User.findOne({ email });
+
+  if (user === null) {
+    throw createHttpError.NotFound('User not found!');
+  }
+
+  const resetToken = jwt.sign(
+    { sub: user._id, name: user.name },
+    getEnvVar('JWT_SECRET'),
+    {
+      expiresIn: '15m',
+    },
+  );
+
+  const template = handlebars.compile(RESET_PASSWORD_TEMPLATE);
+
+  await sendEmail(email, 'Reset yuor password', template({ resetToken }));
+}
+
+export async function resetPassword(token, newPassword) {
+  try {
+    const decoded = jwt.verify(token, getEnvVar('JWT_SECRET'));
+
+    const user = await User.findById(decoded.sub);
+
+    if (user === null) {
+      throw createHttpError.NotFound('User not found!');
+    }
+
+    const hashedPassword = bcrypt.hash(newPassword, 10);
+
+    await User.findByIdAndUpdate(user._id, { password: hashedPassword });
+  } catch (error) {
+    if (error.name === 'JsonWebTokenError') {
+      throw createHttpError.Unauthorized('Token is expired or invalid.');
+    }
+
+    if (error.name === 'TokenExpiredError') {
+      throw createHttpError.Unauthorized('Token is expired or invalid.');
+    }
+
+    throw error;
+  }
 }
