@@ -15,8 +15,6 @@ const RESET_PASSWORD_TEMPLATE = fs.readFileSync(
   { encoding: 'UTF-8' },
 );
 
-console.log(RESET_PASSWORD_TEMPLATE);
-
 export async function registerUser(payload) {
   const user = await User.findOne({ email: payload.email });
 
@@ -48,7 +46,7 @@ export async function loginUser(email, password) {
     userId: user._id,
     accessToken: crypto.randomBytes(30).toString('base64'),
     refreshToken: crypto.randomBytes(30).toString('base64'),
-    accessTokenValidUntil: new Date(Date.now() + 10 * 60 * 1000),
+    accessTokenValidUntil: new Date(Date.now() + 150 * 60 * 1000),
     refreshTokenValidUntil: new Date(Date.now() + 24 * 60 * 60 * 1000),
   });
 }
@@ -117,7 +115,7 @@ export async function resetPassword(token, newPassword) {
       throw createHttpError.NotFound('User not found!');
     }
 
-    const hashedPassword = bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     await User.findByIdAndUpdate(user._id, { password: hashedPassword });
   } catch (error) {

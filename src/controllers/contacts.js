@@ -1,3 +1,6 @@
+import * as fs from 'node:fs/promises';
+import path from 'node:path';
+
 import {
   getContacts,
   getContact,
@@ -11,6 +14,10 @@ import createHttpError from 'http-errors';
 import { parsePaginationParams } from '../utils/parsePaginationParams.js';
 import { parseSortParams } from '../utils/parseSortParams.js';
 import { parseFilterParams } from '../utils/parseFilterParams.js';
+
+import { getEnvVar } from '../utils/getEnvVar.js';
+
+import { uploadToCloudinary } from '../utils/UploadToCloudinary.js';
 
 export async function getContactsController(req, res) {
   const filter = parseFilterParams(req.query);
@@ -69,9 +76,25 @@ export async function deleteContactController(req, res) {
 }
 
 export async function createContactController(req, res) {
+  let avatar = null;
+
+  if (getEnvVar('UPLOAD_TO_CLOUDINARY') === 'true') {
+    const result = await uploadToCloudinary(req.file.path);
+
+    avatar = result.secure_url;
+  } else {
+    await fs.rename(
+      req.file.path,
+      path.resolve('src', 'uploads', req.file.filename),
+    );
+
+    avatar = `http://localhost:2323/uploads/${req.file.filename}`;
+  }
+
   const contact = {
     ...req.body,
     userId: req.user.id,
+    avatar,
   };
 
   const result = await createContact(contact);

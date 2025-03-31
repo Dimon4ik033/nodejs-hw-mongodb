@@ -9,6 +9,8 @@ import {
   updateContactController,
 } from '../controllers/contacts.js';
 
+import { upload } from '../middlewares/upload.js';
+
 import { ctrlWrapper } from '../utils/ctrlWrapper.js';
 import { isValidID } from '../middlewares/isValidId.js';
 import { validateBody } from '../middlewares/validateBody.js';
@@ -26,6 +28,7 @@ router.delete('/:contactId', isValidID, ctrlWrapper(deleteContactController));
 
 router.post(
   '/',
+  upload.single('avatar'),
   jsonParser,
   validateBody(contactShema),
   ctrlWrapper(createContactController),
