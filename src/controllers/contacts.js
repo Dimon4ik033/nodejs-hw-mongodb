@@ -76,25 +76,25 @@ export async function deleteContactController(req, res) {
 }
 
 export async function createContactController(req, res) {
-  let avatar = null;
+  let photo = null;
 
   if (getEnvVar('UPLOAD_TO_CLOUDINARY') === 'true') {
     const result = await uploadToCloudinary(req.file.path);
 
-    avatar = result.secure_url;
+    photo = result.secure_url;
   } else {
     await fs.rename(
       req.file.path,
       path.resolve('src', 'uploads', req.file.filename),
     );
 
-    avatar = `http://localhost:2323/uploads/${req.file.filename}`;
+    photo = `http://localhost:2323/uploads/${req.file.filename}`;
   }
 
   const contact = {
     ...req.body,
     userId: req.user.id,
-    avatar,
+    photo,
   };
 
   const result = await createContact(contact);

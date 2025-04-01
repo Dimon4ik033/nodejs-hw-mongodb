@@ -28,7 +28,7 @@ router.delete('/:contactId', isValidID, ctrlWrapper(deleteContactController));
 
 router.post(
   '/',
-  upload.single('avatar'),
+  upload.single('photo'),
   jsonParser,
   validateBody(contactShema),
   ctrlWrapper(createContactController),
