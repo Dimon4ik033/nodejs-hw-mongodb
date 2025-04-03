@@ -10,8 +10,8 @@ import * as fs from 'node:fs';
 import path from 'node:path';
 import handlebars from 'handlebars';
 
-const RESET_PASSWORD_TEMPLATE = fs.readFileSync(
-  path.resolve('src/templates/reset-password.hbs'),
+export const RESET_PASSWORD_TEMPLATE = fs.readFileSync(
+  path.resolve('src/templates/reset-password-email.html'),
   { encoding: 'UTF-8' },
 );
 
@@ -100,9 +100,17 @@ export async function requestResetPassword(email) {
     },
   );
 
+  const resetLink = `${getEnvVar(
+    'APP_DOMAIN',
+  )}/reset-password?token=${resetToken}`;
+
   const template = handlebars.compile(RESET_PASSWORD_TEMPLATE);
 
-  await sendEmail(email, 'Reset yuor password', template({ resetToken }));
+  await sendEmail(
+    email,
+    'Reset yuor password',
+    template({ name: user.name, link: resetLink }),
+  );
 }
 
 export async function resetPassword(token, newPassword) {
